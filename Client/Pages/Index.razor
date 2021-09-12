@@ -1,0 +1,64 @@
+﻿@page "/"
+@inject HttpClient Http
+@using System.IO
+@using Parser.Shared
+@using Newtonsoft.Json
+
+<h5>Load file to parse</h5>
+<InputFile OnChange="LoadFile"></InputFile>
+
+<div style="padding-top: 15px">
+    @if (_parseEvents.Events.Count > 0)
+    {
+        <h5>Parsed events:</h5>
+        <table style="width:100%">
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Start date</th>
+                <th>End date</th>
+            </tr>
+            @foreach (var ev in _parseEvents.Events)
+            {
+                <tr>
+                    <td>@ev.Name</td>
+                    <td>@ev.Description</td>
+                    <td>@ev.StartDate</td>
+                    <td>@ev.EndDate</td>
+                </tr>
+            }
+        </table>
+    }
+    <div style="padding-top: 15px">
+        @if (_parseEvents.NotValidLines.Count > 0)
+        {
+            <h5>Not valid lines:</h5>
+            foreach (var val in _parseEvents.NotValidLines)
+            {
+                <span>@val</span>
+                <hr />
+            }
+        }
+    </div>
+</div>
+
+
+@code {
+    private ParseEventsListModel _parseEvents = new ParseEventsListModel() { Events = new List<EventModel>(), NotValidLines = new List<string>() };
+
+    async Task LoadFile(InputFileChangeEventArgs e)
+    {
+        Stream stream = e.File.OpenReadStream();
+        MemoryStream ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        stream.Close();
+
+        UploadedFile uploadedFile = new UploadedFile();
+        uploadedFile.FileName = e.File.Name;
+        uploadedFile.FileContent = ms.ToArray();
+        ms.Close();
+
+        var response = await Http.PostAsJsonAsync<UploadedFile>("/file/parser", uploadedFile);
+        _parseEvents = JsonConvert.DeserializeObject<ParseEventsListModel>(await response.Content.ReadAsStringAsync());
+    }
+}
