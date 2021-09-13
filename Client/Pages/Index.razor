@@ -4,8 +4,13 @@
 @using Parser.Shared
 @using Newtonsoft.Json
 
-<h5>Load file to parse</h5>
-<InputFile OnChange="LoadFile"></InputFile>
+<div>
+    <h5>Load file to parse</h5>
+    <InputFile OnChange="LoadFile"></InputFile>
+</div>
+<div>
+    <span style="visibility: @_errorVisibility; color: red">File is too big, highest permissible value is 3MB</span>
+</div>
 
 <div style="padding-top: 15px">
     @if (_parseEvents.Events.Count > 0)
@@ -44,11 +49,20 @@
 
 
 @code {
+    private string _errorVisibility = "hidden";
     private ParseEventsListModel _parseEvents = new ParseEventsListModel() { Events = new List<EventModel>(), NotValidLines = new List<string>() };
 
     async Task LoadFile(InputFileChangeEventArgs e)
     {
+        if (e.File.Size > 3 * 1024 * 1024)
+        {
+            _errorVisibility = "visible";
+            return;
+        }
+        _errorVisibility = "hidden";
+
         Stream stream = e.File.OpenReadStream();
+
         MemoryStream ms = new MemoryStream();
         await stream.CopyToAsync(ms);
         stream.Close();
